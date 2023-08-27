@@ -99,17 +99,17 @@ Idv = np.vectorize(Id)(T)
 # Plotting
 fig, axes = plt.subplots(2, 2, figsize=(12, 12))
 
-axes[0, 0].plot(T, Idv)
+axes[0, 0].plot(T, Idv, linestyle= "dashed", color="black" )
 axes[0, 0].set_xlabel('Time (ms)')
 axes[0, 0].set_ylabel('Current density (uA/$cm^2$)')
 axes[0, 0].set_title('Stimulus (Current density)')
 axes[0, 0].grid()
 
-axes[0, 1].plot(T, Vy[:, 0])
-axes[0, 1].set_xlabel('Time (ms)')
-axes[0, 1].set_ylabel('Vm (mV)')
-axes[0, 1].set_title('Neuron potential with two spikes')
-axes[0, 1].grid()
+axes[0, 0].plot(T, Vy[:, 0])
+axes[0, 0].set_xlabel('Time (ms)')
+axes[0, 0].set_ylabel('Vm (mV)')
+axes[0, 0].set_title('Neuron potential with two spikes')
+axes[0, 0].grid()
 
 axes[1, 0].plot(Vy[:, 0], Vy[:, 1], label='Vm - n')
 axes[1, 0].plot(Vy[:, 0], Vy[:, 2], label='Vm - m')
