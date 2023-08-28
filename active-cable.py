@@ -2,10 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.linalg import solve
 
-# Praktikum Neuroprothesen
-#
-# 04) Aktives Kabelneuron
-
 class HHFormulas:
     def __init__(self):
         self.Vm = None
@@ -38,6 +34,11 @@ class HHFormulas:
         self.iL = None
 
     def calc_all(self):
+        self.calculate_gates_and_time_constants()
+        self.calculate_mnh()
+        self.calculate_currents()
+
+    def calculate_gates_and_time_constants(self):
         self.k_fcn()
         self.alpha_m_fcn()
         self.alpha_n_fcn()
@@ -52,6 +53,7 @@ class HHFormulas:
         self.p_n_fcn()
         self.p_h_fcn()
 
+    def calculate_mnh(self):
         if self.m is None:
             self.m = self.p_m
             self.n = self.p_n
@@ -61,6 +63,7 @@ class HHFormulas:
             self.n_fcn()
             self.h_fcn()
 
+    def calculate_currents(self):
         self.ik_fcn()
         self.ina_fcn()
         self.il_fcn()
@@ -123,6 +126,7 @@ class HHFormulas:
         self.iL = self.gL * (self.Vm - self.eL)
 
 
+# Create an instance of the HHFormulas class
 hh = HHFormulas()
 
 # Define some parameters
@@ -132,7 +136,7 @@ hh.Vm = 0
 # Calculate all
 hh.calc_all()
 
-# parameters
+# Define parameters
 g_Na = 120e-3  # conductance Sodium [ms/cm2]
 g_K = 39e-3    # conductance Potassium [ms/cm2]
 g_L = 0.3e-3   # conductance leak [ms/cm2]
@@ -148,9 +152,6 @@ p_Axon = 0.1e3   # density axon [kOhm*cm]
 r_Axon = 2e-4    # radius axon [cm]
 L_comp = 0.1e-4  # length compartment [cm]
 
-# Praktikum Neuroprothesen
-#
-# 03) Passives Kabelneuron
 
 # time
 dt = 0.01
@@ -216,7 +217,7 @@ plt.colorbar()
 plt.title('Membrane potential spread [mV]', fontsize=18)
 plt.xlabel('Time in ms', fontsize=16)
 plt.ylabel('Compartment Nr.', fontsize=16)
-#plt.xlim(0, 3000)
+plt.xlim(0, 3000)
 
 plt.subplot(2, 2, 2)
 compartments_to_plot = [50, 60, 70, 80]
@@ -227,7 +228,6 @@ plt.xlabel('time [ms]', fontsize=16)
 plt.ylabel('Vm [mV]', fontsize=16)
 plt.title('Time course of the action potentials in selected compartments', fontsize=18)
 plt.grid(True)
-#plt.xticks(np.arange(0, 3001, 500), np.arange(0, 51, 5))
 plt.xlim(0, 3000)
 
 plt.subplot(2, 2, 3)
