@@ -21,10 +21,10 @@ Cm = 1
 Rm = 10
 
 # membrane voltage
-Vm = np.ones((n, len(t)))
+Vm = np.ones((n, len(t)))*-70e-3
 
 # axon
-p = 0.1
+p = 6e-4
 L = 0.1e-4
 r = 2e-4
 Ra = (p * L) / (np.pi * r ** 2)
@@ -42,7 +42,7 @@ Istim[n // 2, :] = 10
 
 for idx in range(len(t) - 1):
     Ihh = Vm[:, idx] / Rm
-    b = Vm[:, idx] + dt / Cm * (-Ihh + Istim[:, idx])
+    b = Vm[:, idx] + (dt / Cm * (-Ihh + Istim[:, idx])).astype(np.float64) # np.float64 prevents RuntimeWarning: overflow encountered in scalar operation
     Vm[:, idx + 1] = np.linalg.solve(A, b)
 
 lambda_val = np.max(Vm[49, :]) * 0.37
