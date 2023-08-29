@@ -2,20 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import butter, filtfilt
 
-# channel to plot
+# channel to plot 
 x = 4
-
-## sinus Signal: acoustic signal
-
-# sampling_freq = 100000
-# f0 = 1000
-# f1 = 1500
-# phase = 0
-# pulse_duration = 100e-3
-# t = np.arange(0, sampling_freq * pulse_duration) / sampling_freq
-# signal = np.sin(2 * np.pi * t * f0 + phase)
-# mod_sin = (1 - np.cos(2 * np.pi * t * 50))
-# signal = signal * mod_sin
 
 # built signal
 sampling_freq = 100_000
@@ -82,7 +70,7 @@ output_matrix = basilar_membrane(signal, sampling_freq)
 # hair cell
 def hair_cell(signal, sampling_freq):
     compress_power = 1
-    order = 4
+    order = 4 # changed from 4
     # Tiefpass 200 Hz
     cutoff = 200
 
@@ -98,22 +86,19 @@ def hair_cell(signal, sampling_freq):
     # Das wird später als Strom für die Neuron Modelle genutzt. I_stim
     # Stark vereinfacht, denn im Grunde ist das ja ein akustisches Signal
 
-    envelope = filtfilt(b, a, compressed_signal)
+    envelope = filtfilt(b, a, compressed_signal, padlen = 0)
 
     return envelope
 
 envelope = hair_cell(output_matrix, sampling_freq)
 
-# Placeholder for demonstration
-output_matrix = np.random.rand(len(signal), x)
-envelope = np.random.rand(len(signal), x)
 
 plt.figure()
-plt.plot(output_matrix[:, x])
+plt.plot(output_matrix[:, x-1])
 plt.title('basilar membrane')
 
 plt.figure()
-plt.plot(envelope[:, x])
+plt.plot(envelope[:, x-1])
 plt.title('hair cell')
 
 ## electric signal
@@ -131,7 +116,7 @@ inter_sample = sampling_freq / pps
 pulse_train = np.zeros(int(1e4))
 pulse_train[np.arange(int(inter_sample), int(1e4), int(inter_sample))] = 1
 
-stim_speicher = np.zeros((len(np.convolve(envelope[:, 0] * pulse_train, kernel)), x))
+stim_speicher = np.zeros((len(np.convolve(envelope[:, 0] * pulse_train, kernel)), 10))
 envelope_pulsed_speicher = np.zeros_like(envelope)
 
 for n in range(envelope.shape[1]):
@@ -153,17 +138,17 @@ plt.plot(signal)
 plt.title('Modified sinusoid signal', fontsize=14)
 
 plt.subplot(4, 1, 2)
-plt.plot(output_matrix[:, x])
+plt.plot(output_matrix[:, x-1])
 plt.title('Signal - Bandpass filtered', fontsize=14)
 
 plt.subplot(4, 1, 3)
-plt.plot(envelope[:, x])
+plt.plot(envelope[:, x-1])
 plt.title('Envelope extraction', fontsize=14)
 
 plt.subplot(4, 1, 4)
-plt.plot(envelope[:, x])
+plt.plot(envelope[:, x-1])
 plt.title('Modulated pulse trains', fontsize=14)
-plt.plot(envelope_pulsed_speicher[:, x])
+plt.plot(envelope_pulsed_speicher[:, x-1])
 plt.xlabel('time [ms]', fontsize=16)
 
 ## Stimulus in HH-Model
@@ -178,7 +163,7 @@ plt.figure()
 plt.subplot(2, 1, 1)
 plt.plot(signal)
 plt.title('modified sinus signal')
-plt.plot(envelope_pulsed_speicher[:, x])
+plt.plot(envelope_pulsed_speicher[:, x-1])
 
 plt.subplot(2, 1, 2)
 plt.plot(t, Vm)
@@ -194,8 +179,8 @@ Vm = np.random.rand(len(final_stim[:, 3]))
 plt.figure()
 plt.plot(t, Vm, 'k-', linewidth=2)
 plt.plot(t, final_stim[:, 3], ':', color=[0.4, 0.4, 0.04], linewidth=1)
-plt.ylim([-20, 120])
-plt.xlim([0, 100])
+# plt.ylim([-20, 120])
+# plt.xlim([0, 100])
 plt.xlabel('Time in ms')
 plt.ylabel('Vm in mV')
 plt.legend(['V_m', 'Stimulus'])
