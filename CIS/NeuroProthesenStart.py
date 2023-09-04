@@ -146,37 +146,37 @@ for idx in range(n2):
 # Adapt the stimulus from Pascal to μA
 final_stim = modulated_stim * 700  # μA
 
-# Plot the results
-plt.figure(1, figsize=(10, 8))
+# # Plot the results
+# plt.figure(1, figsize=(10, 8))
 
-# Create subplots with shared x-axis
-ax1 = plt.subplot(4, 1, 1)
-plt.plot(signal)
-plt.title("Modified sinusoid signal", fontsize=16)
+# # Create subplots with shared x-axis
+# ax1 = plt.subplot(4, 1, 1)
+# plt.plot(signal)
+# plt.title("Modified sinusoid signal", fontsize=16)
 
-ax2 = plt.subplot(4, 1, 2, sharex=ax1)
-plt.plot(filterbank[:, 4])
-plt.title("Signal - Bandpass filtered", fontsize=16)
+# ax2 = plt.subplot(4, 1, 2, sharex=ax1)
+# plt.plot(filterbank[:, 4])
+# plt.title("Signal - Bandpass filtered", fontsize=16)
 
-ax3 = plt.subplot(4, 1, 3, sharex=ax1)
-plt.plot(envelope[:, 4])
-plt.title("Envelope extraction", fontsize=16)
+# ax3 = plt.subplot(4, 1, 3, sharex=ax1)
+# plt.plot(envelope[:, 4])
+# plt.title("Envelope extraction", fontsize=16)
 
-ax4 = plt.subplot(4, 1, 4, sharex=ax1)
-plt.plot(envelope[:, 4])
-plt.plot(modulated_stim[:, 4])
-plt.title("Modulated pulse trains", fontsize=16)
+# ax4 = plt.subplot(4, 1, 4, sharex=ax1)
+# plt.plot(envelope[:, 4])
+# plt.plot(modulated_stim[:, 4])
+# plt.title("Modulated pulse trains", fontsize=16)
 
-# Remove x-axis labels from upper plots
-plt.setp(ax1.get_xticklabels(), visible=False)
-plt.setp(ax2.get_xticklabels(), visible=False)
-plt.setp(ax3.get_xticklabels(), visible=False)
+# # Remove x-axis labels from upper plots
+# plt.setp(ax1.get_xticklabels(), visible=False)
+# plt.setp(ax2.get_xticklabels(), visible=False)
+# plt.setp(ax3.get_xticklabels(), visible=False)
 
-plt.xlabel('Time (s)', fontsize=14)  # Label only the bottom subplot
-plt.xlim(0, 10_000)
+# plt.xlabel('Time (s)', fontsize=14)  # Label only the bottom subplot
+# plt.xlim(0, 10_000)
 
-plt.tight_layout()  # Adjust subplot layout for better spacing
-plt.show()
+# plt.tight_layout()  # Adjust subplot layout for better spacing
+# plt.show()
 
 # Single neuron version
 def simulate_hodgkin_huxley(input_signal, fs):
@@ -238,77 +238,77 @@ def simulate_hodgkin_huxley(input_signal, fs):
 
 Vm, t = simulate_hodgkin_huxley(final_stim, fs)
 
-# # Plot the results
-# plt.figure(1)
+# Plot the results
+plt.figure(1)
 
-# # First subplot (Vm)
-# plt.subplot(2, 1, 1)
-# plt.plot(t, Vm)
-# plt.ylabel('Vm in mV')
-# plt.title('CIS Stimulation response in a single Neuron - 4')
+# First subplot (Vm)
+plt.subplot(2, 1, 1)
+plt.plot(t, Vm)
+plt.ylabel('Vm in mV')
+plt.title('CIS Stimulation response in a single Neuron - 4')
 
-# # Create a second y-axis for the stimulation current
-# plt2 = plt.twinx()
+# Create a second y-axis for the stimulation current
+plt2 = plt.twinx()
 
-# # Plot the stimulation current for channel 4 on the second y-axis
-# line1, = plt2.plot(t, final_stim[:, 4], ':', linewidth=2, color='red', label='channel 4 (Stim)')
-# plt2.set_ylabel('Stimulus in μA')
+# Plot the stimulation current for channel 4 on the second y-axis
+line1, = plt2.plot(t, final_stim[:, 4], ':', linewidth=2, color='red', label='channel 4 (Stim)')
+plt2.set_ylabel('Stimulus in μA')
 
-# # Second subplot (Stimulus for multiple channels)
-# plt.subplot(2, 1, 2)
-# plt.plot(t, final_stim[:, 4], ':', linewidth=2, label='channel 4')
-# plt.plot(t, final_stim[:, 6], ':', linewidth=2, label='channel 5')
-# plt.xlim(8, 15)
-# plt.legend(['channel 4', 'channel 5', 'channel 6', 'channel 7'])
-# plt.xlabel('Time in ms')
-# plt.ylabel('Stimulus in μA')
+# Second subplot (Stimulus for multiple channels)
+plt.subplot(2, 1, 2)
+plt.plot(t, final_stim[:, 4], ':', linewidth=2, label='channel 4')
+plt.plot(t, final_stim[:, 6], ':', linewidth=2, label='channel 5')
+plt.xlim(8, 15)
+plt.legend(['channel 4', 'channel 5', 'channel 6', 'channel 7'])
+plt.xlabel('Time in ms')
+plt.ylabel('Stimulus in μA')
 
-# # Get the legend handles and labels for both subplots
-# handles1, labels1 = plt.gca().get_legend_handles_labels()
-# handles2, labels2 = plt2.get_legend_handles_labels()
+# Get the legend handles and labels for both subplots
+handles1, labels1 = plt.gca().get_legend_handles_labels()
+handles2, labels2 = plt2.get_legend_handles_labels()
 
-# # Combine legend handles and labels from both subplots
-# handles = handles1 + handles2
-# labels = labels1 + labels2
+# Combine legend handles and labels from both subplots
+handles = handles1 + handles2
+labels = labels1 + labels2
 
-# # Add a legend using the combined handles and labels
-# plt.legend(handles, labels, loc='upper right')
+# Add a legend using the combined handles and labels
+plt.legend(handles, labels, loc='upper right')
 
-# plt.tight_layout()
-# plt.show()
+plt.tight_layout()
+plt.show()
 
-# # Multi-neuron version
-# neurons = 100
+# Multi-neuron version
+neurons = 100
 
-# # Determine the desired size of the window
-# window_size = n2
+# Determine the desired size of the window
+window_size = n2
 
-# # Only a simple triangle for the radiation behavior
-# window = np.concatenate((np.arange(0, window_size) / window_size, np.arange(window_size - 2, -1, -1) / window_size))
-
-
-# # Weighting matrix for radiation behavior (windows per electrode)
-# weighting_matrix = np.zeros((n2, neurons))
-
-# # Index for the middle of the window
-# middle_idx = np.round(np.linspace(len(window) / 2, neurons - len(window) / 2, n2)).astype(int)
-
-# # Set the triangles in the right place in the matrix
-# for idx in range(n2):
-#     idx1 = middle_idx[idx] - len(window) // 2
-#     idx2 = middle_idx[idx] + len(window) // 2
-#     weighting_matrix[idx, idx1:idx2 + 1] = window
-
-# # Matrix multiplication (tricky: dimensions/order! only this works!)
-# final_stim = np.dot(weighting_matrix.T, final_stim.T).T
+# Only a simple triangle for the radiation behavior
+window = np.concatenate((np.arange(0, window_size) / window_size, np.arange(window_size - 2, -1, -1) / window_size))
 
 
-# # Initialize Vm and t
-# Vm = np.zeros((len(final_stim), neurons))
-# t = np.zeros(len(final_stim))
+# Weighting matrix for radiation behavior (windows per electrode)
+weighting_matrix = np.zeros((n2, neurons))
 
-# for idx in range(n2):
-#     Vm[:, idx], t = simulate_hodgkin_huxley(final_stim[idx, :], fs)  
+# Index for the middle of the window
+middle_idx = np.round(np.linspace(len(window) / 2, neurons - len(window) / 2, n2)).astype(int)
+
+# Set the triangles in the right place in the matrix
+for idx in range(n2):
+    idx1 = middle_idx[idx] - len(window) // 2
+    idx2 = middle_idx[idx] + len(window) // 2
+    weighting_matrix[idx, idx1:idx2 + 1] = window
+
+# Matrix multiplication (tricky: dimensions/order! only this works!)
+final_stim = np.dot(weighting_matrix.T, final_stim.T).T
+
+
+# Initialize Vm and t
+Vm = np.zeros((len(final_stim), neurons))
+t = np.zeros(len(final_stim))
+
+for idx in range(n2):
+    Vm[:, idx], t = simulate_hodgkin_huxley(final_stim[idx, :], fs)  
 
 # # Plot the results
 # plt.figure(2)
@@ -329,11 +329,11 @@ Vm, t = simulate_hodgkin_huxley(final_stim, fs)
 
 # plt.show()
 
-# # Plot the weighting matrix
-# plt.figure(3)
-# plt.imshow(weighting_matrix, cmap='viridis')
-# plt.xlabel('Neurons')
-# plt.ylabel('Electrode channel')
-# plt.title('Weighting matrix')
-# plt.colorbar()
-# plt.show()
+# Plot the weighting matrix
+plt.figure(3, figsize=(6, 6))  
+plt.imshow(weighting_matrix, cmap='viridis', aspect='auto', extent=[0, 100, 0, 100])  # Set extent to control axis limits
+plt.xlabel('Neurons')
+plt.ylabel('Electrode channel')
+plt.title('Weighting matrix')
+plt.colorbar()
+plt.show()
