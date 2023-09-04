@@ -58,30 +58,6 @@ def basilarmembran(signal_in, fs):
 
 filterbank = basilarmembran(signal, fs) 
 
-# # Inner ear
-# def haircell(input, fs):
-#     cutoff = 200
-#     order = 4
-#     compress_power = 1
-    
-#     # Half-wave rectification
-#     rect = np.maximum(input, 0)
-    
-#     # Compression
-#     output = rect ** compress_power
-    
-#     # Lowpass filtering
-#     fcut = cutoff / (fs / 2)
-
-#     # Calculate the required padlen based on the filter order
-#     padlen = (order * 2) + 1
-
-#     # Apply the low-pass filter
-#     b, a = butter(order, fcut, btype='low')
-#     output = filtfilt(b, a, output, padlen=padlen)
-    
-#     return output
-
 # Inner ear
 def haircell(input, fs):
     cutoff = 200
@@ -171,20 +147,35 @@ for idx in range(n2):
 final_stim = modulated_stim * 700  # μA
 
 # Plot the results
-plt.figure(figsize=[20, 8])
-plt.subplot(4, 1, 1)
+plt.figure(1, figsize=(10, 8))
+
+# Create subplots with shared x-axis
+ax1 = plt.subplot(4, 1, 1)
 plt.plot(signal)
+plt.title("Modified sinusoid signal", fontsize=16)
 
-plt.subplot(4, 1, 2)
+ax2 = plt.subplot(4, 1, 2, sharex=ax1)
 plt.plot(filterbank[:, 4])
+plt.title("Signal - Bandpass filtered", fontsize=16)
 
-plt.subplot(4, 1, 3)
+ax3 = plt.subplot(4, 1, 3, sharex=ax1)
 plt.plot(envelope[:, 4])
+plt.title("Envelope extraction", fontsize=16)
 
-plt.subplot(4, 1, 4)
+ax4 = plt.subplot(4, 1, 4, sharex=ax1)
 plt.plot(envelope[:, 4])
 plt.plot(modulated_stim[:, 4])
+plt.title("Modulated pulse trains", fontsize=16)
 
+# Remove x-axis labels from upper plots
+plt.setp(ax1.get_xticklabels(), visible=False)
+plt.setp(ax2.get_xticklabels(), visible=False)
+plt.setp(ax3.get_xticklabels(), visible=False)
+
+plt.xlabel('Time (s)', fontsize=14)  # Label only the bottom subplot
+plt.xlim(0, 10_000)
+
+plt.tight_layout()  # Adjust subplot layout for better spacing
 plt.show()
 
 # Single neuron version
