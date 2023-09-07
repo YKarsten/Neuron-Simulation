@@ -1,21 +1,22 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from scipy.integrate import odeint
 from hodgkin_huxley import simulate_hodgkin_huxley
-from scipy.signal import butter, filtfilt
+from scipy.signal import butter, filtfilt, convolve
+from scipy.interpolate import interp1d
 
 # Build signal
-fs = 100000
+fs = 100_000 # sampling frequency
 f = 1000
 f2 = 1200
-duration = 100e-3  # sec
+duration = 100e-3  # 100 ms
 t = np.arange(0, fs * duration) / fs
 signal = np.sin(2 * np.pi * t * f)
 signal2 = np.sin(2 * np.pi * t * f2)
 mod_sin = (1 - np.cos(2 * np.pi * t * 50))
 mod_sin2 = (1 - np.cos(2 * np.pi * t * 100))
 signal = signal2 * mod_sin2 + signal * mod_sin
+# signal = signal * mod_sin
 
 # CIS
 # Middle ear
@@ -30,9 +31,6 @@ signal = middle_ear(signal, fs)
 
 # Filterbank
 def basilarmembran(signal_in, fs):
-    # Only one channel
-    signal = signal_in
-
     # Third octave middle frequencies from 500(-3) to 4k (6) (-1/+1 for border calculation!)
     to_f = 1000 * 2.0 ** np.arange(-4, 8) / 3.0  # Use floating-point numbers
 
@@ -52,7 +50,7 @@ def basilarmembran(signal_in, fs):
     for idx in range(len(to_f)):
         fcut = [band_edges[idx] / (fs / 2), band_edges[idx + 1] / (fs / 2)]  # Divide each element by fs/2
         b, a = butter(order, fcut, btype='band')
-        signal_out[:, idx] = filtfilt(b, a, signal)
+        signal_out[:, idx] = filtfilt(b, a, signal_in)
 
     return signal_out
 
@@ -86,7 +84,6 @@ def haircell(input, fs):
     
     return output
 
-
 envelope = haircell(filterbank, fs)  
 
 # Kernel
@@ -101,50 +98,62 @@ n1, n2 = envelope.shape
 pps = 800
 
 # Period duration in samples
-T = round(fs / pps)
+T = round(fs / pps) # 125
 
 # Dirac train (no zero at the first entry!)
 pulses = np.zeros(n1)
 pulses[range(T - 1, n1, T)] = 1
 
-# Preallocation
+
+######## 
+
+
+# Preallocate final_stim
 final_stim = np.zeros((n1, n2))
 
-for idx in range(n2):
+for idx in range(1, n2 + 1):
     # Delay for the different electrodes
-    phase = 1 / pps * idx / n2
-    phase_samples = round(fs * phase)
-
+    phase = (1 / pps) * idx / n2
+    phase_samples = int(fs * phase)
+    
     # Sampled envelope
-    sampled_envelope = pulses * envelope[:, idx]
-
+    sampled_envelope = pulses * envelope[:, idx - 1]  # Adjust for 0-based indexing
+    
     # Add the delay
-    stim_plus_phase = np.concatenate((np.zeros(phase_samples), np.convolve(sampled_envelope, kernel)))
+    stim_plus_phase = np.concatenate((np.zeros(phase_samples), convolve(sampled_envelope, kernel)))
 
     # Cut the stim to the right length
-    final_stim[:, idx] = stim_plus_phase[:n1]
-
-
-
-# Generate modulated pulse trains with a frequency of 800 Hz
-def generate_modulated_pulse_trains(fs, duration, pps):
-    t = np.arange(0, duration, 1/fs)
-    pulse_train = np.zeros(len(t))
-    pulse_period = int(fs / pps)
-    pulse_train[::pulse_period] = 1
-    return pulse_train
-
-# Generate modulated pulse trains for each channel
-pps = 800
-modulated_pulse_trains = [generate_modulated_pulse_trains(fs, duration, pps) for _ in range(n2)]
-
-# Fit the modulated pulse trains to the envelope
-modulated_stim = np.zeros((n1, n2))
-for idx in range(n2):
-    modulated_stim[:, idx] = modulated_pulse_trains[idx][:n1] * envelope[:, idx]
+    final_stim[:, idx - 1] = stim_plus_phase[0: n1]
 
 # Adapt the stimulus from Pascal to μA
-final_stim = modulated_stim * 700  # μA
+final_stim = final_stim * 700  # μA
+
+
+
+###### 
+
+# Generate modulated pulse trains with a frequency of 800 Hz
+# def generate_modulated_pulse_trains(fs, duration, pps):
+#     t = np.arange(0, duration, 1/fs)
+#     pulse_train = np.zeros(len(t))
+#     pulse_period = int(fs / pps)
+#     pulse_train[::pulse_period] = 1
+#     return pulse_train
+
+# # Generate modulated pulse trains for each channel
+# modulated_pulse_trains = [generate_modulated_pulse_trains(fs, duration, pps) for _ in range(n2)]
+
+# # Fit the modulated pulse trains to the envelope
+# modulated_stim = np.zeros((n1, n2))
+# for idx in range(n2):
+#     modulated_stim[:, idx] = modulated_pulse_trains[idx][:n1] * envelope[:, idx]
+
+# # Adapt the stimulus from Pascal to μA
+# final_stim = modulated_stim * 700  # μA
+
+###### 
+
+
 
 # # Plot the results
 # plt.figure(1, figsize=(10, 8))
@@ -179,7 +188,7 @@ final_stim = modulated_stim * 700  # μA
 # plt.show()
 
 # Single neuron version
-def simulate_hodgkin_huxley(input_signal, fs):
+def simulate_hodgkin_huxley(input_signal):
     # Constants
     Cm = 1.0  # Membrane capacitance (uF/cm^2)
     V_Na = 50.0  # Sodium Nernst potential (mV)
@@ -208,19 +217,15 @@ def simulate_hodgkin_huxley(input_signal, fs):
     h[0] = 0.6  # Initial sodium inactivation
     n[0] = 0.32  # Initial potassium activation
 
-    # External current stimulation (uA/cm^2)
-    I_stim = np.zeros(num_steps)
-    I_stim[1000:4000] = 10.0  # Inject a current pulse from 100 to 400 ms
-
     # Simulation loop
-    for i in range(1, num_steps):
+    for i in range(1, num_steps-1):
         # Hodgkin-Huxley equations
-        alpha_m = 0.1 * (Vm[i - 1] + 40.0) / (1.0 - np.exp(-0.1 * (Vm[i - 1] + 40.0)))
-        beta_m = 4.0 * np.exp(-(Vm[i - 1] + 65.0) / 18.0)
-        alpha_h = 0.07 * np.exp(-(Vm[i - 1] + 65.0) / 20.0)
-        beta_h = 1.0 / (1.0 + np.exp(-0.1 * (Vm[i - 1] + 35.0)))
-        alpha_n = 0.01 * (Vm[i - 1] + 55.0) / (1.0 - np.exp(-0.1 * (Vm[i - 1] + 55.0)))
-        beta_n = 0.125 * np.exp(-(Vm[i - 1] + 65.0) / 80.0)
+        alpha_m = (2.5 - 0.1 * Vm[i - 1]) / (np.exp(2.5 - 0.1 * Vm[i - 1]) - 1)
+        beta_m = 4 * np.exp(-Vm[i - 1] / 18)
+        alpha_h = 0.07 * np.exp(-Vm[i - 1] / 20)
+        beta_h = 1 / (np.exp(3 - 0.1 * Vm[i - 1]) + 1)
+        alpha_n = (0.1 - 0.01 * Vm[i - 1]) / (np.exp(1 - 0.1 * Vm[i - 1]) - 1)
+        beta_n = 0.125 * np.exp(-Vm[i - 1] / 80)
 
         m[i] = m[i - 1] + dt * (alpha_m * (1.0 - m[i - 1]) - beta_m * m[i - 1])
         h[i] = h[i - 1] + dt * (alpha_h * (1.0 - h[i - 1]) - beta_h * h[i - 1])
@@ -231,22 +236,75 @@ def simulate_hodgkin_huxley(input_signal, fs):
         I_L = G_L * (Vm[i - 1] - V_L)
 
         # Update membrane potential using the equation Cm * dV/dt = I_stim - I_Na - I_K - I_L
-        Vm[i] = Vm[i - 1] + (dt / Cm) * (I_stim[i] - I_Na - I_K - I_L)
+        Vm[i] = Vm[i - 1] + (dt / Cm) * (input_signal[i] - I_Na - I_K - I_L)
 
     return Vm, t
 
+# # Creating a bipolar pulse
+# dt = 0.01
+# stim_4 = final_stim[:, 4]
 
-Vm, t = simulate_hodgkin_huxley(final_stim, fs)
+# # Calculate the time values for t_bipolar_stim
+# t_bipolar_stim = np.linspace(0, len(final_stim) * dt, len(final_stim))
+
+# # Calculate the maximum value in t_bipolar_stim
+# max_t_bipolar_stim = np.max(t_bipolar_stim)
+
+# # Adjust the desired_duration to match the maximum value in t_bipolar_stim
+# desired_duration = max_t_bipolar_stim
+
+# # Create t_simulation using the adjusted desired_duration
+# t_simulation = np.linspace(0, desired_duration, int(desired_duration / dt))
+
+# # Create an interpolation function
+# interp_func = interp1d(t_bipolar_stim, final_stim[:, 4], kind='linear')
+
+# # Generate the interpolated bipolar stimulation signal
+# interpolated_bipolar_stim = interp_func(t_simulation)
+
+# Number of channels
+num_channels = final_stim.shape[1]
+
+# Create subplots with twinx() for secondary y-axis
+fig, axs = plt.subplots(num_channels, 1, figsize=(8, 2*num_channels), sharex=True)
+
+# Plot each channel with two y-axes
+for channel in range(num_channels):
+    # Create a twin axes for the secondary y-axis
+    ax1 = axs[channel]
+    ax2 = ax1.twinx()
+
+    # Plot Vm on the primary y-axis (left)
+    Vm, t = simulate_hodgkin_huxley(final_stim[:, channel])
+    ax1.plot(t, Vm, 'b', label='Vm')
+    ax1.set_ylabel(f'Channel {channel + 1}')
+    ax1.set_title(f'Channel {channel + 1}')
+    ax1.set_xlim(0,100)
+
+    # Plot final_stim on the secondary y-axis (right)
+    ax2.plot(t, final_stim[:, channel], 'r', label='final_stim')
+    ax2.set_ylabel('final_stim')
+
+    # Add legends for both y-axes
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper right')
+
+# Set common x-axis label
+axs[-1].set_xlabel('Time (s)')
+
+# Adjust spacing between subplots
+plt.tight_layout()
 
 # Plot the results
-plt.figure(1)
+plt.figure()
 
 # First subplot (Vm)
 plt.subplot(2, 1, 1)
 plt.plot(t, Vm)
 plt.ylabel('Vm in mV')
 plt.title('CIS Stimulation response in a single Neuron - 4')
-
+plt.xticks(np.arange(0,101,5))
+plt.xlim(0,100)
 # Create a second y-axis for the stimulation current
 plt2 = plt.twinx()
 
@@ -257,11 +315,12 @@ plt2.set_ylabel('Stimulus in μA')
 # Second subplot (Stimulus for multiple channels)
 plt.subplot(2, 1, 2)
 plt.plot(t, final_stim[:, 4], ':', linewidth=2, label='channel 4')
-plt.plot(t, final_stim[:, 6], ':', linewidth=2, label='channel 5')
+plt.plot(t, final_stim[:, 5], ':', linewidth=2, label='channel 5')
 plt.xlim(8, 15)
-plt.legend(['channel 4', 'channel 5', 'channel 6', 'channel 7'])
+plt.legend(['channel 4', 'channel 5'])
 plt.xlabel('Time in ms')
 plt.ylabel('Stimulus in μA')
+plt.xticks(np.arange(10,15,0.5))
 
 # Get the legend handles and labels for both subplots
 handles1, labels1 = plt.gca().get_legend_handles_labels()
@@ -277,40 +336,44 @@ plt.legend(handles, labels, loc='upper right')
 plt.tight_layout()
 plt.show()
 
-# Multi-neuron version
-neurons = 100
+# # Multi-neuron version
+# neurons = 100
 
-# Determine the desired size of the window
-window_size = n2
+# # Initialize Vm and t for multiple neurons
+# Vm = np.zeros((len(final_stim), neurons, n2))
+# t = np.zeros(len(final_stim))
 
-# Only a simple triangle for the radiation behavior
-window = np.concatenate((np.arange(0, window_size) / window_size, np.arange(window_size - 2, -1, -1) / window_size))
+# # Determine the desired size of the window
+# window_size = n2
 
-
-# Weighting matrix for radiation behavior (windows per electrode)
-weighting_matrix = np.zeros((n2, neurons))
-
-# Index for the middle of the window
-middle_idx = np.round(np.linspace(len(window) / 2, neurons - len(window) / 2, n2)).astype(int)
-
-# Set the triangles in the right place in the matrix
-for idx in range(n2):
-    idx1 = middle_idx[idx] - len(window) // 2
-    idx2 = middle_idx[idx] + len(window) // 2
-    weighting_matrix[idx, idx1:idx2 + 1] = window
-
-# Matrix multiplication (tricky: dimensions/order! only this works!)
-final_stim = np.dot(weighting_matrix.T, final_stim.T).T
+# # Only a simple triangle for the radiation behavior
+# window = np.concatenate((np.arange(0, window_size) / window_size, np.arange(window_size - 2, -1, -1) / window_size))
 
 
-# Initialize Vm and t
-Vm = np.zeros((len(final_stim), neurons))
-t = np.zeros(len(final_stim))
+# # Weighting matrix for radiation behavior (windows per electrode)
+# weighting_matrix = np.zeros((n2, neurons))
 
-for idx in range(n2):
-    Vm[:, idx], t = simulate_hodgkin_huxley(final_stim[idx, :], fs)  
+# # Index for the middle of the window
+# middle_idx = np.round(np.linspace(len(window) / 2, neurons - len(window) / 2, n2)).astype(int)
 
-# # Plot the results
+# # Set the triangles in the right place in the matrix
+# for idx in range(n2):
+#     idx1 = middle_idx[idx] - len(window) // 2
+#     idx2 = middle_idx[idx] + len(window) // 2
+#     weighting_matrix[idx, idx1:idx2 + 1] = window
+
+# # Matrix multiplication (tricky: dimensions/order! only this works!)
+# final_stim = np.dot(weighting_matrix.T, final_stim.T).T
+
+
+# # Initialize Vm and t
+# Vm = np.zeros((len(final_stim), neurons))
+# t = np.zeros(len(final_stim))
+
+# for idx in range(n2):
+#     Vm[:, idx], t = simulate_hodgkin_huxley(final_stim[idx, :])  
+
+# # # Plot the results
 # plt.figure(2)
 # extent = [0, t[-1], 0, neurons]  # Set the extent based on the available data
 # plt.imshow(Vm.T, extent=extent, aspect='auto', cmap='viridis')
@@ -329,11 +392,11 @@ for idx in range(n2):
 
 # plt.show()
 
-# Plot the weighting matrix
-plt.figure(3, figsize=(6, 6))  
-plt.imshow(weighting_matrix, cmap='viridis', aspect='auto', extent=[0, 100, 0, 100])  # Set extent to control axis limits
-plt.xlabel('Neurons')
-plt.ylabel('Electrode channel')
-plt.title('Weighting matrix')
-plt.colorbar()
-plt.show()
+# # Plot the weighting matrix
+# # plt.figure(3, figsize=(6, 6))  
+# # plt.imshow(weighting_matrix, cmap='viridis', aspect='auto', extent=[0, 100, 0, 100])  # Set extent to control axis limits
+# # plt.xlabel('Neurons')
+# # plt.ylabel('Electrode channel')
+# # plt.title('Weighting matrix')
+# # plt.colorbar()
+# # plt.show()
