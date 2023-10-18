@@ -56,7 +56,7 @@ It is recommended to `Run all cells` as this ensures all cells to execute proper
   - scipy: Version 1.11.2
 
 # License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](license.txt) file for details.
 
 
 # References
