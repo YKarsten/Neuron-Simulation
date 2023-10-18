@@ -3,8 +3,6 @@
 This project explores various computational models of neuronal stimulation, culminating in an algorithm designed for the stimulation of current cochlear implants.  
 Originally developed in Matlab for a master's program in Neuroscience, the project has been reimagined in Python and formatted into a Jupyter lab notebook for enhanced readability. This transition not only showcases my scientific background but also reflects my approach to working with data and visualization. For a more in-depth understanding of the underlying mathematical and neurobiological details, refer to [my written report](Neuroprothetics-report-Y-Karsten.pdf).
 
-## To get started open the .ipynb file on github and consult the .pdf file for more details
-
 # Installation
 
 You can view a rendered version of the notebook [here](Neuron-Simulation.ipynb).
